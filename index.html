@@ -1,1 +1,390 @@
- 
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>加法计算器</title>
+  <style>
+    :root {
+      --bg-base: #f6f8fc;
+      --bg-glow-1: #dbe4ff;
+      --bg-glow-2: #ede9fe;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #dbe3ef;
+      --field: #f8fafc;
+      --accent: #4f46e5;
+      --accent-2: #7c3aed;
+      --danger: #dc2626;
+      --shadow: 0 24px 60px -28px rgba(79, 70, 229, 0.5);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-base: #0b1020;
+        --bg-glow-1: #1e2a5a;
+        --bg-glow-2: #2b1b4d;
+        --card: #151b2e;
+        --text: #e8edf7;
+        --muted: #94a3b8;
+        --border: #2a3450;
+        --field: #101728;
+        --accent: #818cf8;
+        --accent-2: #a78bfa;
+        --danger: #f87171;
+        --shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(900px 500px at 8% -12%, var(--bg-glow-1), transparent 70%),
+        radial-gradient(800px 480px at 108% 112%, var(--bg-glow-2), transparent 70%),
+        var(--bg-base);
+    }
+
+    .card {
+      width: 100%;
+      max-width: 420px;
+      padding: 28px 26px 24px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .card h1 {
+      margin: 0 0 4px;
+      font-size: 1.25rem;
+      letter-spacing: 0.02em;
+    }
+
+    .card p.subtitle {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .operands {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: end;
+      gap: 10px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .field label {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1.05rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      appearance: textfield;
+    }
+
+    .field input::-webkit-outer-spin-button,
+    .field input::-webkit-inner-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+
+    .field input:hover { border-color: var(--accent); }
+
+    .field input:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+
+    .operator {
+      padding-bottom: 13px;
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 18px 18px 20px;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%);
+      text-align: center;
+    }
+
+    .result .expression {
+      min-height: 1.1em;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      word-break: break-all;
+    }
+
+    .result output {
+      display: block;
+      margin-top: 6px;
+      font-size: clamp(1.9rem, 9vw, 2.6rem);
+      font-weight: 700;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+      word-break: break-all;
+      transition: transform 0.18s ease, color 0.18s ease;
+    }
+
+    .result output.pop {
+      transform: scale(1.06);
+      color: var(--accent);
+    }
+
+    .result output.placeholder {
+      color: var(--muted);
+      font-size: 1.6rem;
+      font-weight: 600;
+    }
+
+    .error {
+      min-height: 1.2em;
+      margin: 12px 2px 0;
+      font-size: 0.82rem;
+      color: var(--danger);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      padding: 12px 20px;
+      font: inherit;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.18s ease, background 0.18s ease;
+    }
+
+    .btn-primary {
+      border: none;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 24px -12px var(--accent);
+    }
+
+    .btn-primary:hover { filter: brightness(1.08); }
+
+    .btn-ghost {
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+    button:active { transform: scale(0.97); }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
+    }
+
+    .hint {
+      margin: 14px 0 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    kbd {
+      padding: 1px 6px;
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-family: inherit;
+    }
+
+    @media (max-width: 360px) {
+      .card { padding: 22px 18px 20px; border-radius: 18px; }
+      .actions { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>加法计算器</h1>
+    <p class="subtitle">支持小数与负数，结果最多保留 10 位小数</p>
+
+    <form id="adder" novalidate>
+      <div class="operands">
+        <div class="field">
+          <label for="a">第一个加数</label>
+          <input id="a" name="a" type="number" step="any" inputmode="decimal" placeholder="0" autocomplete="off" />
+        </div>
+        <span class="operator" aria-hidden="true">+</span>
+        <div class="field">
+          <label for="b">第二个加数</label>
+          <input id="b" name="b" type="number" step="any" inputmode="decimal" placeholder="0" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="expression" id="expression">&nbsp;</div>
+        <output id="result" class="placeholder" aria-live="polite">等待计算</output>
+      </div>
+
+      <p class="error" id="error" role="alert"></p>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary">计算</button>
+        <button type="button" class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </form>
+
+    <p class="hint">输入后按 <kbd>Enter</kbd> 也可以计算</p>
+  </main>
+
+  <script>
+    (function () {
+      const form = document.getElementById('adder');
+      const inputA = document.getElementById('a');
+      const inputB = document.getElementById('b');
+      const resultEl = document.getElementById('result');
+      const expressionEl = document.getElementById('expression');
+      const errorEl = document.getElementById('error');
+
+      const MAX_DECIMALS = 10;
+
+      /** 纯计算函数 */
+      function add(a, b) {
+        return a + b;
+      }
+
+      /**
+       * 显示层四舍五入：最多保留 10 位小数，去掉多余的 0。
+       * 返回 null 表示结果不可用（NaN / Infinity）。
+       */
+      function formatResult(value) {
+        if (!Number.isFinite(value)) return null;
+        if (Number.isInteger(value) || Math.abs(value) >= 1e21) {
+          return String(value);
+        }
+        return value.toFixed(MAX_DECIMALS).replace(/\.?0+$/, '');
+      }
+
+      /** 校验输入，返回数字或 null */
+      function parseOperand(input) {
+        const raw = input.value.trim();
+        if (raw === '') return null;
+        const value = Number(raw);
+        return Number.isFinite(value) ? value : null;
+      }
+
+      function showError(message) {
+        errorEl.textContent = message;
+        inputA.setAttribute('aria-invalid', 'false');
+        inputB.setAttribute('aria-invalid', 'false');
+        expressionEl.innerHTML = '&nbsp;';
+        resultEl.classList.remove('pop');
+        resultEl.classList.add('placeholder');
+        resultEl.textContent = '等待计算';
+      }
+
+      function render(a, b, result) {
+        errorEl.textContent = '';
+        inputA.setAttribute('aria-invalid', 'false');
+        inputB.setAttribute('aria-invalid', 'false');
+
+        expressionEl.textContent = formatResult(a) + ' + ' + formatResult(b) + ' =';
+        resultEl.textContent = result;
+        resultEl.classList.remove('placeholder');
+
+        // 重新触发一次轻微的放大动画
+        resultEl.classList.remove('pop');
+        void resultEl.offsetWidth;
+        resultEl.classList.add('pop');
+        window.setTimeout(() => resultEl.classList.remove('pop'), 180);
+      }
+
+      function handleSubmit(event) {
+        event.preventDefault();
+
+        const a = parseOperand(inputA);
+        const b = parseOperand(inputB);
+
+        if (a === null) {
+          inputA.setAttribute('aria-invalid', 'true');
+          showError('请输入第一个有效的数字。');
+          inputA.focus();
+          return;
+        }
+
+        if (b === null) {
+          inputB.setAttribute('aria-invalid', 'true');
+          showError('请输入第二个有效的数字。');
+          inputB.focus();
+          return;
+        }
+
+        const formatted = formatResult(add(a, b));
+        if (formatted === null) {
+          showError('结果超出可表示的数值范围。');
+          return;
+        }
+
+        render(a, b, formatted);
+      }
+
+      function handleReset() {
+        form.reset();
+        showError('');
+        inputA.focus();
+      }
+
+      form.addEventListener('submit', handleSubmit);
+      document.getElementById('resetBtn').addEventListener('click', handleReset);
+
+      // 输入变化时清除上一轮的提示
+      [inputA, inputB].forEach((input) => {
+        input.addEventListener('input', () => {
+          if (errorEl.textContent) errorEl.textContent = '';
+        });
+      });
+
+      inputA.focus();
+    })();
+  </script>
+</body>
+</html>
